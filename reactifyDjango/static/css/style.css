@@ -3,5 +3,8 @@ body{
 }
 
 .bg-sec{
-    background-color: #5248dbce;
+    background-color: #520da063;
+}
+.text-sec{
+    color: #520da0d2;
 }
