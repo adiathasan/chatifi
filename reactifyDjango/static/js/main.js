@@ -6,6 +6,25 @@ const form = document.getElementById('form-tweet')
 
 var dNone = document.getElementById('err')
 
+// CSRF-to send it to backend
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
 form.addEventListener('submit', createTweetHandler) // creating tweets view
 
 
@@ -35,6 +54,8 @@ function createTweetHandler(e) {
         }else if(xhr.status === 403){
             alert('you must login')
             window.location.href = '/login'
+        }else if (xhr.status === 401){
+            console.log(serverResponse)
         }
     
     }
@@ -78,17 +99,55 @@ let loadTweets = (cls)=>{      // all tweets view.
 loadTweets(body)
 
 
-function likesHandler(tweet_id, currentCount){
+function likesHandler(tweet_id, currentCount, action){
+    console.log(tweet_id, currentCount)
+    var url = 'tweet/action'
+    const method = 'POST'
+    const data = JSON.stringify({
+        id : tweet_id,
+        action: action
+     })
 
-    alert(`id:${tweet_id} > Likes: ${currentCount}`)
+    var xhr = new XMLHttpRequest()
+    xhr.open(method, url)
+    xhr.setRequestHeader('Content-Type', 'application/json')
+    xhr.setRequestHeader('HTTP_X_REQUESTED_WITH', 'XMLHttpRequest')
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
+    xhr.setRequestHeader('X-CSRFToken', csrftoken)
+    xhr.onload = ()=>{
+       
+        loadTweets(body)
+  
+    }
+
+    xhr.send(data)
 
 }
 
 function likeBtn(twt){
 
-    return `<button class='btn btn-primary ' onclick='likesHandler(${twt.id}, ${twt.likes})'>${twt.likes} Likes</button>`
+    if(twt.like > 1){
+        return `<button class='btn btn-primary btn-sm ' onclick='likesHandler(${twt.id}, ${twt.like}, "like")'>${twt.like} Likes</button>`
+    }
+
+    return `<button class='btn btn-primary btn-sm' onclick='likesHandler(${twt.id}, ${twt.like}, "like")'>${twt.like} Like</button>`
 
 }
+
+function ReTweetBtn(twt) {
+
+    return `<button class='btn btn-outline-dark btn-sm' onclick='likesHandler(${twt.id}, ${twt.like}, "retweet")'>ReTweet</button>`
+
+}
+
+
+function UnLiketBtn(twt) {
+
+    return `<button class='btn btn-outline-light btn-sm' onclick='likesHandler(${twt.id}, ${twt.like}, "unlike")'> Unlike</button>`
+
+}
+
+
 
 function formatTweets(tweet){
 
@@ -98,6 +157,8 @@ function formatTweets(tweet){
                     </div>`
 style +=            `<div class="col-12 mb-2 pb-4"> 
                         ${likeBtn(tweet)}
+                        ${UnLiketBtn(tweet)}
+                        ${ReTweetBtn(tweet)}
                     </div> 
                 </div>`
     return style

@@ -7,7 +7,7 @@ from .models import Tweet
 from .forms import TweetForm
 from django.utils.http import is_safe_url
 from django.conf import settings
-from .serializers import tweetPostSerializer
+from .serializers import TweetPostSerializer, TweetActionSerializer, TweetGetSerializer
 
 # Create your views here.
 
@@ -21,28 +21,67 @@ def home(request):
 @api_view(['GET'])
 def all_tweets(request):
     tweets = Tweet.objects.all().order_by('-id')
-    serialize = tweetPostSerializer(tweets, many=True)
+    serialize = TweetGetSerializer(tweets, many=True)
     return Response(serialize.data)
+
 
 @api_view(['GET'])
 def tweet_detail(request, pk):
     tweet = get_object_or_404(Tweet, id=pk)
-    serializer = tweetPostSerializer(tweet, many=False)
+    serializer = TweetGetSerializer(tweet, many=False)
     return Response(serializer.data)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['POST'])
+def tweeting(request):
+    serialize = TweetPostSerializer(data=request.data)
+    if serialize.is_valid(raise_exception=True):
+        serialize.save(user=request.user)
+        return Response(serialize.data , status=201)
+    return JsonResponse(serialize.errors, status=401)
+
+
+@api_view(['DELETE', 'POST'])
+@permission_classes([IsAuthenticated])
+def tweet_delete(request, pk):
+    tweet = get_object_or_404(Tweet, id=pk)
+    person = Tweet.objects.filter(user=request.user)
+    if not person.exists():
+        return Response({'message': 'You are not authorized to delete this post'})
+    tweet.delete()
+    return Response('Tweet deleted successfully')
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def tweeting(request):
-    """
-    create a new tweet.
-    """
-    serialize = tweetPostSerializer(data=request.POST)
-    if serialize.is_valid():
-        serialize.save(user=request.user)
-        return Response(serialize.data , status=201)
-    if serialize.errors:
-        if request.is_ajax():
-            return JsonResponse(serialize.errors, status=401)
+def tweet_action(request):
+    serializer = TweetActionSerializer(data=request.data)
+    if serializer.is_valid(raise_exception=True):
+        data = serializer.validated_data
+        tweet_id = data.get('id')
+        action = data.get('action')
+    person = Tweet.objects.filter(id=tweet_id)
+    if not person.exists():
+        return Response({}, status=404)
+    obj = person.first()
+    serializer = TweetGetSerializer(obj)
+    # if person is None:
+    #     return Response({'message': 'User does not exits'}, status=404)
+    if action == 'like':
+        obj.like.add(request.user)
+        return Response(serializer.data, status=200)
+    elif action == 'unlike':
+        obj.like.remove(request.user)
+    elif action == 'retweet':
+        parent_obj = obj
+        new_tweet = Tweet.objects.create(user=request.user,
+                                        Parent=parent_obj)
+        serializer = TweetGetSerializer(new_tweet)
+        return Response(serializer.data, status=200)
+    return Response({}, status=200)
+
+
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>> Old pure django api views

@@ -101,7 +101,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+
 LOGIN_URL = 'login/'
+TWEET_ACTION_OPTIONS = ['like', 'unlike', 'retweet']
+LENGTH_OF_TWEET = 200
+
 
 
 # Internationalization
