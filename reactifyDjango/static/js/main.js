@@ -4,7 +4,9 @@ const input = document.getElementById('tweet-input')
 
 const form = document.getElementById('form-tweet') 
 
-form.addEventListener('submit', createTweetHandler)
+var dNone = document.getElementById('err')
+
+form.addEventListener('submit', createTweetHandler) // creating tweets view
 
 
 function createTweetHandler(e) {
@@ -14,20 +16,44 @@ function createTweetHandler(e) {
     const method = trg.getAttribute('method')
     const url = trg.getAttribute('action')
     const xhr = new XMLHttpRequest()
-
+    let responseType = 'json'
+    xhr.responseType = responseType
     xhr.open(method, url)
-
+    xhr.setRequestHeader('HTTP_X_REQUESTED_WITH', 'XMLHttpRequest') 
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
     xhr.onload = () => {
         var serverResponse = xhr.response
-        input.value = ''
-        loadTweets(body)
+
+        if(xhr.status === 201){
+            input.value = ''
+            var newTweetResELm = formatTweets(serverResponse)
+            body.innerHTML = newTweetResELm + body.innerHTML 
+        }else if(xhr.status === 400){
+            var errMsg = serverResponse
+            // errorMsg(errMsg)
+            console.log(errMsg)
+        }else if(xhr.status === 403){
+            alert('you must login')
+            window.location.href = '/login'
+        }
+    
     }
 
     xhr.send(data)
 }
 
 
-let loadTweets = (cls)=>{
+function errorMsg(err) {
+    dNone.classList.remove('d-none')
+    dNone.innerText = err
+    setTimeout(()=>{
+        dNone.classList.add('d-none')
+        dNone.innerText = ''
+    }, 3000)
+}
+
+
+let loadTweets = (cls)=>{      // all tweets view.
     const xhr = new XMLHttpRequest()
     let responseType = 'json'
     let method = 'GET'
@@ -40,7 +66,7 @@ let loadTweets = (cls)=>{
     xhr.onload = ()=>{
         var serverResponse = xhr.response
         cls.innerHTML = ''
-        serverResponse.response.forEach((element, i) => {
+        serverResponse.forEach((element, i) => {
             cls.innerHTML += formatTweets(element)
             
         });
@@ -66,7 +92,7 @@ function likeBtn(twt){
 
 function formatTweets(tweet){
 
-    var style = `<div class="row bg-sec mb-2 rounded">
+    var style = `<div class="row bg-sec mb-4 rounded shadow">
                      <div class="col-12 mt-4">
                         <p id=${tweet.id}>${tweet.content}</p4>
                     </div>`
