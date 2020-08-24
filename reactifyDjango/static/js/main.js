@@ -101,7 +101,7 @@ loadTweets(body)
 
 function likesHandler(tweet_id, currentCount, action){
     console.log(tweet_id, currentCount)
-    var url = 'tweet/action'
+    var url = 'api/tweets/action'
     const method = 'POST'
     const data = JSON.stringify({
         id : tweet_id,

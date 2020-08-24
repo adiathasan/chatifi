@@ -9,6 +9,7 @@ from django.utils.http import is_safe_url
 from django.conf import settings
 from .serializers import TweetPostSerializer, TweetActionSerializer, TweetGetSerializer
 
+
 # Create your views here.
 
 
@@ -38,7 +39,7 @@ def tweeting(request):
     serialize = TweetPostSerializer(data=request.data)
     if serialize.is_valid(raise_exception=True):
         serialize.save(user=request.user)
-        return Response(serialize.data , status=201)
+        return Response(serialize.data, status=201)
     return JsonResponse(serialize.errors, status=401)
 
 
@@ -73,16 +74,14 @@ def tweet_action(request):
         return Response(serializer.data, status=200)
     elif action == 'unlike':
         obj.like.remove(request.user)
+        return Response(serializer.data, status=200)
     elif action == 'retweet':
         parent_obj = obj
         new_tweet = Tweet.objects.create(user=request.user,
-                                        Parent=parent_obj)
+                                         Parent=parent_obj)
         serializer = TweetGetSerializer(new_tweet)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=201)
     return Response({}, status=200)
-
-
-
 
 # >>>>>>>>>>>>>>>>>>>>>>>> Old pure django api views
 
